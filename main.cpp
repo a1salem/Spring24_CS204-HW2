@@ -94,8 +94,8 @@ void print_taken_list(node_taken * head)
     cout << endl;
 }
 
-// add to the taken list, if not exist
-void add_to_taken(node_taken* &head, const string & str) // addition is sorted
+
+void add_to_taken(node_taken* &head, const string & str) // add to the taken list, if not exist, addition is sorted
 {
     if (head == nullptr|| head->name > str)
     {
