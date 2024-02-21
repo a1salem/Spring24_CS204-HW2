@@ -9,17 +9,15 @@ struct node_like{
     string object;
     node_like *next;
     node_like():subject(""),object(""),next(nullptr){}
-    node_like(string &s, string &o, node_like *nl):subject(s),object(o),next(nl){}
+    node_like(string s, string o, node_like *nl= nullptr):subject(s),object(o),next(nl){}
 };
 
 struct node_taken{
     string name;
     node_taken *next;
     node_taken():name(""),next(nullptr){}
-    node_taken(string s, node_taken *nt):name(s),next(nt){}
+    node_taken(string s, node_taken *nt= nullptr):name(s),next(nt){}
 };
-
-void print_likes_list2(node_like* head);
 
 node_like* is_subject_in_likes(node_like * &head, const string & str)//takes a subject and checks if it is in the likes list, if so, it returns the node of its last occurrence, and nullptr otherwise
 {
@@ -91,7 +89,7 @@ void print_taken_list(node_taken * head)
             cout << " ";
         }
     }
-    cout << endl;
+    cout <<endl;
 }
 
 
@@ -172,11 +170,11 @@ void remove_from_likes(node_like* & head, const string & str)
         {
             if (prev == nullptr) // If the node to be deleted is the head node
             {
-                head = temp->next;
+                head = temp->next; // Change head
             }
-            else
+            else// If the node to be deleted is not the head node
             {
-                prev->next = temp->next;
+                prev->next = temp->next; // jump over the node to be deleted
             }
 
             node_like *to_be_deleted = temp;
@@ -191,45 +189,53 @@ void remove_from_likes(node_like* & head, const string & str)
     }
 }
 
-void read_file_into_lists(ifstream & file, node_like* & head_like, node_taken* & head_taken)
+void print_likes_and_taken_lists(node_like* head_like, node_taken* head_taken)
+{
+    print_likes_list(head_like);
+    print_taken_list(head_taken);
+}
+
+void read_file_into_lists(ifstream & file, node_like* & head_like, node_taken* & head_taken) // this is the primary function
 {
     string subject, verb, object;
+    // have counter for lines
+    int line_counter = 1;
     while(file >> subject >> verb >> object)
     {
-        cout<< "Read: " << subject << " " << verb << " " << object << endl;
+        cout << "Read line number (" << line_counter++ <<"): " << "\"" << subject << " " << verb << " " << object << "\"" << endl;
         if (is_taken(head_taken, subject) || is_taken(head_taken, object))
         {
-            cout<< "Either " << subject << " or " << object << " is already taken, so the like relation is not added." << endl;
-            print_likes_list(head_like);
-            continue;
+            cout<< "Either " << "\"" << subject << "\"" << " or " << "\"" << object << "\"" << " or both is/are already taken, so the like relation is not added." << endl;
+            print_likes_and_taken_lists(head_like, head_taken);
         }
-        if (subject == object)
+//        else if (subject == object) // e.g. "A likes A"
+//        {
+//            cout << "Subject and object can not be the same, the relation is not added." << endl;
+//            print_likes_and_taken_lists(head_like, head_taken);
+//        }
+        else if (is_redundant(head_like, subject, object))  // e.g. read line "A likes B", and "A likes B" is in the list
         {
-            cout << "Subject and object can not be the same, the relation is not added." << endl;
-            print_likes_list(head_like);
-            continue;
+            cout << "\"" << subject << " likes " << object << "\"" << " relation already exists, so it is not added." << endl;
+            print_likes_and_taken_lists(head_like, head_taken);
         }
-        if (is_match_candidate(head_like, subject, object))
+        else if (is_match_candidate(head_like, subject, object))// e.g. read line "A likes B", and "B likes A" is in the list
         {
-            cout << "Match found: " << subject << " likes " << object << " and " << object << " likes " << subject << endl;
+            cout << "Match found: " << "\"" << subject << "\"" << " likes " << "\"" << object << "\"" << " and " << "\"" << object << "\"" << " likes " << "\"" << subject << "\"" << endl;
             add_to_taken(head_taken, subject);
             add_to_taken(head_taken, object);
-            // as a result of match, we need to remove the like relation from the list
-            cout << "Any node that has " << subject << " or " << object << " in its subject or object will be removed from the likes list." << endl;
+            // as a result of match, we need to remove the like relation from the list, these are the side effects that we mentioned in the "Program Flow" section
+            cout << "Any node that has " << "\"" << subject << "\"" << " or " << "\"" << object << "\"" << " or both in it is removed from the likes list." << endl;
             remove_from_likes(head_like, subject);
             remove_from_likes(head_like, object);
-            print_likes_list(head_like);
-            continue;
+            print_likes_and_taken_lists(head_like, head_taken);
         }
-        if (is_redundant(head_like, subject, object))
+        else
         {
-            cout << "The relation is redundant, so it is not added." << endl;
-            print_likes_list(head_like);
-            continue;
+            add_to_end_likes(head_like, subject, object);
+            cout<< "\"" << subject << " likes " << object << "\"" << " relation has been added to the likes list."<<endl;
+            print_likes_and_taken_lists(head_like, head_taken);
         }
-        cout << "It is safe to add the relation to the likes list." << endl;
-        add_to_end_likes(head_like, subject, object);
-        print_likes_list(head_like);
+        cout<<endl;
     }
 }
 
@@ -282,66 +288,10 @@ int main() {
     open_file(file,file_name);
     read_file_into_lists(file, head_like, head_taken);
     file.close();
-    //print_likes_list(head_like);
-    print_taken_list(head_taken);
 
     // clearing both lists
     deleteList(head_like);
     deleteList(head_taken);
-    cout << "Programs ends successfully." << endl;
+    cout << "Lists are deleted and program ends successfully.";
     return 0;
-}
-
-
-void print_likes_list2(node_like* head)
-{
-    if (head == nullptr)
-    {
-        //cout << "Likes list is empty." << endl;
-        cout << endl;
-        return;
-    }
-
-    string current_subject = head->subject;
-    vector<string> current_objects = {head->object};
-
-    node_like *temp = head->next;
-    while(temp != nullptr)
-    {
-        if (temp->subject == current_subject)
-        {
-            current_objects.push_back(temp->object);
-        }
-        else
-        {
-            cout << "{" << current_subject << ": ";
-            for (int i = 0; i < current_objects.size(); i++)
-            {
-                cout << current_objects[i];
-                if (i != current_objects.size() - 1)
-                {
-                    cout << ", ";
-                }
-            }
-            cout << "} " ;
-
-            current_subject = temp->subject;
-            current_objects = {temp->object};
-        }
-        temp = temp->next;
-    }
-
-    // Print the objects for the last subject
-    cout << "{" << current_subject << ": ";
-    for (int i = 0; i < current_objects.size(); i++)
-    {
-        cout << current_objects[i];
-        if (i != current_objects.size() - 1)
-        {
-            cout << ", ";
-        }
-    }
-    cout << "} " ;
-
-    cout << endl;
 }
